@@ -2,11 +2,11 @@ use std::error::Error;
 use std::thread;
 use std::time::Duration;
 
-use rppal::i2c::I2c;
+use rppal::i2c::{I2c, Error as I2cError};
 
 mod aht20;
 
-use aht20::Aht20;
+use aht20::{Aht20, Aht20Error};
 
 // DS3231 I2C default slave address.
 const ADDR_AHT20: u16 = 0x38;

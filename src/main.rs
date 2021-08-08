@@ -31,6 +31,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     aht20.init()?;
 
+    aht20.get_sensor_data()?;
 //    let mut i2c = I2c::with_bus(0)?;
 //
 //    // Set the I2C slave address to the device we're communicating with.

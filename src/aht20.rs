@@ -106,9 +106,7 @@ impl Aht20 {
 
     pub fn init(&mut self) -> Result<(), Aht20Error> {
         let status = self.get_status()?;
-        println!("reg is {:?}", status);
         if (status & 0x16 == 0) {
-            println!("send init command");
             let mut reg:[u8;2] = [0x08, 0x00];
             self.i2c.write(&reg)?;
             thread::sleep(Duration::from_micros(100));

@@ -1,4 +1,5 @@
 use std::{error, fmt};
+use crc8::Crc8;
 use crate::{I2c, I2cError, Error, Duration, thread};
 
 pub struct Aht20 {
@@ -45,15 +46,21 @@ impl error::Error for Aht20Error {}
 //    }
 //}
 
+type AhtData = [u8; 7];
+
 pub trait Aht20Decoder {
     fn to_human(&self) -> (f32, f32);
 }
 
-impl Aht20Decoder for [u8;6] {
+impl Aht20Decoder for AhtData {
     fn to_human(&self) -> (f32, f32) {
         let humid_data:u32 = (self[1] as u32) << 12 | (self[2] as u32) << 4 | (self[3] as u32) & 0xF0 >> 4;
         let temp_data:u32 = (self[3] as u32 & 0xF)<< 16 | (self[4] as u32) << 8 | self[5] as u32;
 
+        let mut crc8 = Crc8::create_lsb(131);
+        println!("data is {:02X?}", self);
+        let mut crc = crc8.calc(&self[1..7], 6, 0);
+        println!("crc is {}", crc);
         (humid_data as f32 / 2_i32.pow(20) as f32 * 100.0, temp_data as f32 * ((200.0)/2_i32.pow(20) as f32) - 50.0)
     }
 }
@@ -86,7 +93,7 @@ impl Aht20 {
 
     pub fn get_sensor_data(&mut self) -> Result<(f32, f32), Aht20Error> {
         self.trigger_measure()?;
-        let mut reg = [0u8; 6];
+        let mut reg: AhtData = Default::default();
         let (humid_data, temp_data) =
         {
             loop {
@@ -107,7 +114,7 @@ impl Aht20 {
     pub fn init(&mut self) -> Result<(), Aht20Error> {
         let status = self.get_status()?;
         if (status & 0x16 == 0) {
-            let mut reg:[u8;2] = [0x08, 0x00];
+            let reg:[u8;2] = [0x08, 0x00];
             self.i2c.write(&reg)?;
             thread::sleep(Duration::from_micros(100));
         }

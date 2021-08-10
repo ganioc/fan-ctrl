@@ -17,25 +17,24 @@ namespace blobstore {
 
 // Toy implementation of an in-memory blobstore.
 //
-// In reality the implementation of BlobstoreClient could be a large complex C++
+// In reality the implementation of AdcClient could be a large complex C++
 // library.
-class BlobstoreClient::impl {
-  friend BlobstoreClient;
+class AdcClient::impl {
+  friend AdcClient;
 
   TLA2024 adc;
 };
 
-BlobstoreClient::BlobstoreClient() : impl(new class BlobstoreClient::impl) {}
+AdcClient::AdcClient() : impl(new class AdcClient::impl) {}
 
 // Upload a new blob and return a blobid that serves as a handle to the blob.
-uint16_t BlobstoreClient::read(std::uint8_t channel) const {
-  std::cout<< "in read" << channel;
+uint16_t AdcClient::read(std::uint8_t channel) const {
   return impl->adc.readADC_SingleEnded(channel);
 }
 
 
-std::unique_ptr<BlobstoreClient> new_blobstore_client() {
-  return std::make_unique<BlobstoreClient>();
+std::unique_ptr<AdcClient> new_blobstore_client() {
+  return std::make_unique<AdcClient>();
 }
 
 } // namespace blobstore

@@ -15,9 +15,9 @@ mod ffi {
     unsafe extern "C++" {
         include!("ruff-hnt-rs/include/blobstore.h");
 
-        type BlobstoreClient;
+        type AdcClient;
 
-        fn new_blobstore_client() -> UniquePtr<BlobstoreClient>;
+        fn new_blobstore_client() -> UniquePtr<AdcClient>;
         fn read(&self, channel: u8) -> u16;
     }
 }

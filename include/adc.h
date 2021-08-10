@@ -3,8 +3,8 @@
 #include <cstdint>
 #include <memory>
 
-namespace org {
-namespace blobstore {
+namespace ruff {
+namespace adc {
 
 
 class AdcClient {
@@ -17,7 +17,7 @@ private:
   std::shared_ptr<impl> impl;
 };
 
-std::unique_ptr<AdcClient> new_blobstore_client();
+std::unique_ptr<AdcClient> new_adc_client();
 
-} // namespace blobstore
-} // namespace org
+} // namespace adc
+} // namespace ruff

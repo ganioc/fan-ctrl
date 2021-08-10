@@ -1,4 +1,4 @@
-#include "ruff-hnt-rs/include/blobstore.h"
+#include "ruff-hnt-rs/include/adc.h"
 #include "ruff-hnt-rs/src/main.rs.h"
 
 #include <algorithm>
@@ -12,10 +12,10 @@
 #include <iostream>
 
 #include "ruff-hnt-rs/include/ADS1X15_TLA2024.h"
-namespace org {
-namespace blobstore {
+namespace ruff {
+namespace adc {
 
-// Toy implementation of an in-memory blobstore.
+// Toy implementation of an in-memory adc.
 //
 // In reality the implementation of AdcClient could be a large complex C++
 // library.
@@ -33,9 +33,9 @@ uint16_t AdcClient::read(std::uint8_t channel) const {
 }
 
 
-std::unique_ptr<AdcClient> new_blobstore_client() {
+std::unique_ptr<AdcClient> new_adc_client() {
   return std::make_unique<AdcClient>();
 }
 
-} // namespace blobstore
-} // namespace org
+} // namespace adc
+} // namespace ruff

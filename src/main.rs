@@ -10,20 +10,20 @@ use aht20::{Aht20, Aht20Error};
 
 const ADDR_AHT20: u16 = 0x38;
 
-#[cxx::bridge(namespace = "org::blobstore")]
+#[cxx::bridge(namespace = "ruff::adc")]
 mod ffi {
     unsafe extern "C++" {
-        include!("ruff-hnt-rs/include/blobstore.h");
+        include!("ruff-hnt-rs/include/adc.h");
 
         type AdcClient;
 
-        fn new_blobstore_client() -> UniquePtr<AdcClient>;
+        fn new_adc_client() -> UniquePtr<AdcClient>;
         fn read(&self, channel: u8) -> u16;
     }
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let client = ffi::new_blobstore_client();
+    let client = ffi::new_adc_client();
     let mut aht20 = Aht20::new(0, ADDR_AHT20)?;
 
     aht20.init()?;

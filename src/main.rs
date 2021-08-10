@@ -10,6 +10,28 @@ use aht20::{Aht20, Aht20Error};
 
 const ADDR_AHT20: u16 = 0x38;
 
+pub trait BoardAdc {
+    fn to_current(&self, ch: u8) -> Option<f32>;
+    fn to_voltage(&self, ch: u8) -> Option<f32>;
+}
+
+impl BoardAdc for u16 {
+    fn to_current(&self, ch: u8) -> Option<f32> {
+        match ch {
+            0..=1 => Some(*self as f32 * 6.144 / 2.5 * 1000.0),
+            _ => None,
+        }
+    }
+
+    fn to_voltage(&self, ch: u8) -> Option<f32> {
+        match ch {
+            2..=3 => Some(*self as f32 * 6.144 / 2.5 * 1000.0),
+            _ => None,
+        }
+    }
+
+}
+
 #[cxx::bridge(namespace = "ruff::adc")]
 mod ffi {
     unsafe extern "C++" {
@@ -33,6 +55,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         for ch in 0..4 {
             let data = client.read(ch);
             println!("channel {} data is {}", ch, data);
+            println!("{:?}", data.to_current(ch));
         }
         thread::sleep(Duration::from_secs(1));
     }

@@ -5,8 +5,10 @@ use std::time::Duration;
 use rppal::i2c::{I2c, Error as I2cError};
 
 mod aht20;
+mod emc2101;
 
 use aht20::{Aht20, Aht20Error};
+use emc2101::{Emc2101, Emc2101Error};
 
 const ADDR_AHT20: u16 = 0x38;
 
@@ -50,15 +52,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     let client = ffi::new_adc_client();
     let mut aht20 = Aht20::new(0, ADDR_AHT20)?;
 
+    let mut emc2101 = Emc2101::new(0, 0x4C)?;
     aht20.init()?;
+    emc2101.init()?;
 
     loop {
         aht20.get_sensor_data()?;
-        for ch in 0..4 {
-            let data = client.read(ch);
-            println!("channel {} data is {}", ch, data);
-            println!("{:?}", data.to_humman(ch));
-        }
+        //for ch in 0..4 {
+        //    let data = client.read(ch);
+        //    println!("channel {} data is {}", ch, data);
+        //    println!("{:?}", data.to_humman(ch));
+        //}
         thread::sleep(Duration::from_secs(1));
     }
 }

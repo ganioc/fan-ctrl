@@ -1,6 +1,6 @@
-use std::{error, fmt};
+use crate::{thread, Duration, Error, I2c, I2cError};
 use crc8::Crc8;
-use crate::{I2c, I2cError, Error, Duration, thread};
+use std::{error, fmt};
 
 const EMC2101_REG_CONFIG: u8 = 0x3;
 const EMC2101_WHOAMI: u8 = 0xFD;
@@ -11,7 +11,7 @@ const EMC2101_REG_FAN_SETTING: u8 = 0x4C;
 pub struct Emc2101 {
     bus: u8,
     addr: u16,
-    i2c: I2c
+    i2c: I2c,
 }
 
 #[derive(Debug)]
@@ -27,7 +27,6 @@ pub trait RegData {
 
 impl RegData for u8 {
     fn set_bit(&self, value: bool, bit: u8) -> u8 {
-
         if (value) {
             *self | (1u8 << bit)
         } else {
@@ -45,14 +44,11 @@ impl From<I2cError> for Emc2101Error {
 impl fmt::Display for Emc2101Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Emc2101Error::AhtI2c(ref err)=>
-                write!(f, "I2c Error {}", err),
-            Emc2101Error::InvalidDeviceId =>
-                write!(f, "InvalidDeviceId"),
+            Emc2101Error::AhtI2c(ref err) => write!(f, "I2c Error {}", err),
+            Emc2101Error::InvalidDeviceId => write!(f, "InvalidDeviceId"),
             // The wrapped error contains additional information and is available
             // via the source() method.
-            Emc2101Error::UnkonwnStatus =>
-                write!(f, "UnkonwnStatus"),
+            Emc2101Error::UnkonwnStatus => write!(f, "UnkonwnStatus"),
         }
     }
 }
@@ -63,11 +59,7 @@ impl Emc2101 {
     pub fn new(bus: u8, addr: u16) -> Result<Emc2101, Emc2101Error> {
         let mut i2c = I2c::with_bus(bus)?;
         i2c.set_slave_address(addr)?;
-        Ok(Emc2101 {
-            bus,
-            addr,
-            i2c,
-        })
+        Ok(Emc2101 { bus, addr, i2c })
     }
 
     pub fn enable_tach(&mut self, enable: bool) -> Result<(), Emc2101Error> {
@@ -98,7 +90,7 @@ impl Emc2101 {
         Ok(())
     }
 
-    pub fn set_pwm_clock(&mut self, clksel:bool, clkovr:bool) -> Result<(), Emc2101Error> {
+    pub fn set_pwm_clock(&mut self, clksel: bool, clkovr: bool) -> Result<(), Emc2101Error> {
         let mut data = self.i2c.smbus_read_byte(EMC2101_FAN_CONFIG)?;
 
         data = data.set_bit(clksel, 3);
@@ -108,7 +100,7 @@ impl Emc2101 {
         Ok(())
     }
 
-    pub fn enable_lut(&mut self, enable:bool) -> Result<(), Emc2101Error> {
+    pub fn enable_lut(&mut self, enable: bool) -> Result<(), Emc2101Error> {
         let mut data = self.i2c.smbus_read_byte(EMC2101_FAN_CONFIG)?;
 
         data = data.set_bit(enable, 5);

@@ -1,6 +1,7 @@
 use crate::{thread, Duration, Error, I2c, I2cError};
 use crc8::Crc8;
 use std::{error, fmt};
+use std::result;
 
 const EMC2101_REG_CONFIG: u8 = 0x3;
 const EMC2101_WHOAMI: u8 = 0xFD;
@@ -59,14 +60,16 @@ impl fmt::Display for Emc2101Error {
 
 impl error::Error for Emc2101Error {}
 
+pub type Result<T> = result::Result<T, Emc2101Error>;
+
 impl Emc2101 {
-    pub fn new(bus: u8, addr: u16) -> Result<Emc2101, Emc2101Error> {
+    pub fn new(bus: u8, addr: u16) -> Result<Emc2101> {
         let mut i2c = I2c::with_bus(bus)?;
         i2c.set_slave_address(addr)?;
         Ok(Emc2101 { bus, addr, i2c })
     }
 
-    pub fn enable_tach(&mut self, enable: bool) -> Result<(), Emc2101Error> {
+    pub fn enable_tach(&mut self, enable: bool) -> Result<()> {
         let mut data = self.i2c.smbus_read_byte(EMC2101_REG_CONFIG)?;
         if (enable) {
             data = data | 1u8 << 2;
@@ -80,7 +83,7 @@ impl Emc2101 {
         Ok(())
     }
 
-    pub fn invert_fan_speed(&mut self, invert: bool) -> Result<(), Emc2101Error> {
+    pub fn invert_fan_speed(&mut self, invert: bool) -> Result<()> {
         let mut data = self.i2c.smbus_read_byte(EMC2101_FAN_CONFIG)?;
         if (invert) {
             data = data | 1u8 << 4;
@@ -91,12 +94,12 @@ impl Emc2101 {
         Ok(())
     }
 
-    pub fn set_pwm_frequency(&mut self, freq: u8) -> Result<(), Emc2101Error> {
+    pub fn set_pwm_frequency(&mut self, freq: u8) -> Result<()> {
         self.i2c.smbus_write_byte(EMC2101_PWM_FREQ, freq)?;
         Ok(())
     }
 
-    pub fn set_pwm_clock(&mut self, clksel: bool, clkovr: bool) -> Result<(), Emc2101Error> {
+    pub fn set_pwm_clock(&mut self, clksel: bool, clkovr: bool) -> Result<()> {
         let mut data = self.i2c.smbus_read_byte(EMC2101_FAN_CONFIG)?;
 
         data = data.set_bit(clksel, 3);
@@ -105,7 +108,7 @@ impl Emc2101 {
         Ok(())
     }
 
-    pub fn enable_program(&mut self, enable: bool) -> Result<(), Emc2101Error> {
+    pub fn enable_program(&mut self, enable: bool) -> Result<()> {
         let mut data = self.i2c.smbus_read_byte(EMC2101_FAN_CONFIG)?;
 
         data = data.set_bit(enable, 5);
@@ -114,7 +117,7 @@ impl Emc2101 {
         Ok(())
     }
 
-    pub fn set_duty_cycle(&mut self, duty: u8) -> Result<(), Emc2101Error> {
+    pub fn set_duty_cycle(&mut self, duty: u8) -> Result<()> {
         let mut to_reg: u8 = ((duty as u16 * 64) / 100 as u16) as u8;
 
         if (to_reg > 63) {
@@ -124,7 +127,7 @@ impl Emc2101 {
         Ok(())
     }
 
-    pub fn set_min_rpm(&mut self, min_rpm: u16) -> Result<(), Emc2101Error> {
+    pub fn set_min_rpm(&mut self, min_rpm: u16) -> Result<()> {
         let lsb_value: u16 = (EMC2101_FAN_RPM_NUMERATOR / min_rpm as u32) as u16;
 
         self.i2c.smbus_write_byte(EMC2101_TACH_LIMIT_LSB, (lsb_value & 0xFF) as u8)?;
@@ -132,14 +135,14 @@ impl Emc2101 {
         Ok(())
     }
 
-    pub fn enable_force_temp(&mut self, force: bool) -> Result<(), Emc2101Error> {
+    pub fn enable_force_temp(&mut self, force: bool) -> Result<()> {
         let mut data = self.i2c.smbus_read_byte(EMC2101_FAN_CONFIG)?;
         data = data.set_bit(force, 6);
         self.i2c.smbus_write_byte(EMC2101_FAN_CONFIG, data)?;
         Ok(())
     }
 
-    pub fn set_default_config(&mut self, fan_duty: u8)-> Result<(), Emc2101Error> {
+    pub fn set_default_config(&mut self, fan_duty: u8)-> Result<()> {
         self.enable_tach(true)?;
         self.invert_fan_speed(false)?;
         self.set_pwm_frequency(0x1F)?;
@@ -151,7 +154,7 @@ impl Emc2101 {
         Ok(())
     }
 
-    pub fn init(&mut self) -> Result<(), Emc2101Error> {
+    pub fn init(&mut self) -> Result<()> {
         let id = self.i2c.smbus_read_byte(EMC2101_WHOAMI)?;
         if (id != 0x16 && id != 0x28) {
             return Err(Emc2101Error::InvalidDeviceId);

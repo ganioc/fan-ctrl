@@ -55,6 +55,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut emc2101 = Emc2101::new(0, 0x4C)?;
     aht20.init()?;
     emc2101.init()?;
+    emc2101.set_default_config(20)?;
 
     loop {
         aht20.get_sensor_data()?;

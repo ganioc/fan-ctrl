@@ -105,7 +105,7 @@ impl Emc2101 {
         Ok(())
     }
 
-    pub fn enable_lut(&mut self, enable: bool) -> Result<(), Emc2101Error> {
+    pub fn enable_program(&mut self, enable: bool) -> Result<(), Emc2101Error> {
         let mut data = self.i2c.smbus_read_byte(EMC2101_FAN_CONFIG)?;
 
         data = data.set_bit(enable, 5);
@@ -139,20 +139,23 @@ impl Emc2101 {
         Ok(())
     }
 
+    pub fn set_default_config(&mut self, fan_duty: u8)-> Result<(), Emc2101Error> {
+        self.enable_tach(true)?;
+        self.invert_fan_speed(false)?;
+        self.set_pwm_frequency(0x1F)?;
+        self.enable_force_temp(true)?;
+        self.set_pwm_clock(false, false)?;
+        self.enable_program(true)?;
+        self.set_duty_cycle(fan_duty)?;
+        self.set_min_rpm(150)?;
+        Ok(())
+    }
+
     pub fn init(&mut self) -> Result<(), Emc2101Error> {
         let id = self.i2c.smbus_read_byte(EMC2101_WHOAMI)?;
         if (id != 0x16 && id != 0x28) {
             return Err(Emc2101Error::InvalidDeviceId);
         }
-
-        self.enable_tach(false)?;
-        self.invert_fan_speed(false)?;
-        self.set_pwm_frequency(0x1F)?;
-        self.enable_force_temp(true)?;
-        self.set_pwm_clock(false, false)?;
-        self.enable_lut(true)?;
-        self.set_duty_cycle(50)?;
-        self.set_min_rpm(150)?;
         Ok(())
     }
 }

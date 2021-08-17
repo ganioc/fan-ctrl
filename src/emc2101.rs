@@ -7,6 +7,10 @@ const EMC2101_WHOAMI: u8 = 0xFD;
 const EMC2101_FAN_CONFIG: u8 = 0x4A;
 const EMC2101_PWM_FREQ: u8 = 0x4D;
 const EMC2101_REG_FAN_SETTING: u8 = 0x4C;
+const EMC2101_TACH_LIMIT_LSB: u8 = 0x48;
+const EMC2101_TACH_LIMIT_MSB: u8 = 0x49;
+
+const EMC2101_FAN_RPM_NUMERATOR: u32 = 5400000;
 
 pub struct Emc2101 {
     bus: u8,
@@ -69,8 +73,10 @@ impl Emc2101 {
         } else {
             data = data & !(1u8 << 2);
         }
-        println!("data is {:02X}", data);
+        println!("write data is => {:02X}", data);
         self.i2c.smbus_write_byte(EMC2101_REG_CONFIG, data)?;
+        data = self.i2c.smbus_read_byte(EMC2101_REG_CONFIG)?;
+        println!("read data is => {:02X}", data);
         Ok(())
     }
 
@@ -95,7 +101,6 @@ impl Emc2101 {
 
         data = data.set_bit(clksel, 3);
         data = data.set_bit(clkovr, 2);
-        println!("set pwm clock data is {:02X}", data);
         self.i2c.smbus_write_byte(EMC2101_FAN_CONFIG, data)?;
         Ok(())
     }
@@ -105,6 +110,7 @@ impl Emc2101 {
 
         data = data.set_bit(enable, 5);
         self.i2c.smbus_write_byte(EMC2101_FAN_CONFIG, data)?;
+        data = self.i2c.smbus_read_byte(EMC2101_FAN_CONFIG)?;
         Ok(())
     }
 
@@ -115,6 +121,14 @@ impl Emc2101 {
             to_reg = 63;
         }
         self.i2c.smbus_write_byte(EMC2101_REG_FAN_SETTING, to_reg)?;
+        Ok(())
+    }
+
+    pub fn set_min_rpm(&mut self, min_rpm: u16) -> Result<(), Emc2101Error> {
+        let lsb_value: u16 = (EMC2101_FAN_RPM_NUMERATOR / min_rpm as u32) as u16;
+
+        self.i2c.smbus_write_byte(EMC2101_TACH_LIMIT_LSB, (lsb_value & 0xFF) as u8)?;
+        self.i2c.smbus_write_byte(EMC2101_TACH_LIMIT_MSB, ((lsb_value >> 8) & 0xFF) as u8)?;
         Ok(())
     }
 
@@ -131,14 +145,14 @@ impl Emc2101 {
             return Err(Emc2101Error::InvalidDeviceId);
         }
 
-        self.enable_tach(true)?;
+        self.enable_tach(false)?;
         self.invert_fan_speed(false)?;
         self.set_pwm_frequency(0x1F)?;
-        self.set_pwm_clock(true, false)?;
-        self.enable_lut(false)?;
-        self.set_duty_cycle(100)?;
-        self.enable_force_temp(false)?;
-        println!("after set fan");
+        self.enable_force_temp(true)?;
+        self.set_pwm_clock(false, false)?;
+        self.enable_lut(true)?;
+        self.set_duty_cycle(50)?;
+        self.set_min_rpm(150)?;
         Ok(())
     }
 }

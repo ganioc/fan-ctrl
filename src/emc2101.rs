@@ -8,6 +8,8 @@ const EMC2101_WHOAMI: u8 = 0xFD;
 const EMC2101_FAN_CONFIG: u8 = 0x4A;
 const EMC2101_PWM_FREQ: u8 = 0x4D;
 const EMC2101_REG_FAN_SETTING: u8 = 0x4C;
+const EMC2101_TACH_LSB: u8 = 0x46;
+const EMC2101_TACH_MSB: u8 = 0x47;
 const EMC2101_TACH_LIMIT_LSB: u8 = 0x48;
 const EMC2101_TACH_LIMIT_MSB: u8 = 0x49;
 
@@ -140,6 +142,13 @@ impl Emc2101 {
         data = data.set_bit(force, 6);
         self.i2c.smbus_write_byte(EMC2101_FAN_CONFIG, data)?;
         Ok(())
+    }
+
+    pub fn get_fan_speed(&mut self) -> Result<u16> {
+        let data_lsb = self.i2c.smbus_read_byte(EMC2101_TACH_LSB)?;
+        let data_msb = self.i2c.smbus_read_byte(EMC2101_TACH_LSB)?;
+
+        return Ok((5400000 as u32 / (data_lsb as u32| (data_msb as u32) << 8)) as u16);
     }
 
     pub fn set_default_config(&mut self, fan_duty: u8)-> Result<()> {

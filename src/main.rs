@@ -55,10 +55,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut emc2101 = Emc2101::new(0, 0x4C)?;
     aht20.init()?;
     emc2101.init()?;
-    emc2101.set_default_config(20)?;
+    emc2101.set_default_config(40)?;
 
     loop {
         aht20.get_sensor_data()?;
+        let speed = emc2101.get_fan_speed()?;
+        println!("speed => {}", speed);
         //for ch in 0..4 {
         //    let data = client.read(ch);
         //    println!("channel {} data is {}", ch, data);

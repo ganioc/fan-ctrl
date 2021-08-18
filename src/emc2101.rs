@@ -146,9 +146,14 @@ impl Emc2101 {
 
     pub fn get_fan_speed(&mut self) -> Result<u16> {
         let data_lsb = self.i2c.smbus_read_byte(EMC2101_TACH_LSB)?;
-        let data_msb = self.i2c.smbus_read_byte(EMC2101_TACH_LSB)?;
+        let data_msb = self.i2c.smbus_read_byte(EMC2101_TACH_MSB)?;
 
-        return Ok((5400000 as u32 / (data_lsb as u32| (data_msb as u32) << 8)) as u16);
+        println!("msb=>  {:02X} lsb {:02X}", data_msb, data_lsb);
+        if (data_lsb == 0xFF && data_msb == 0xFF) {
+            return Err(Emc2101Error::UnkonwnStatus);
+        }
+        let raw_data: u16 = (data_lsb as u16) | ((data_msb & 0x3F) as u16) << 8;
+        return Ok((5400000 as u32 / raw_data as u32) as u16);
     }
 
     pub fn set_default_config(&mut self, fan_duty: u8)-> Result<()> {

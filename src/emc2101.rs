@@ -4,6 +4,7 @@ use std::{error, fmt};
 use std::result;
 
 const EMC2101_REG_CONFIG: u8 = 0x3;
+const EMC2101_TEMP_FORCE: u8 = 0x0C;
 const EMC2101_WHOAMI: u8 = 0xFD;
 const EMC2101_FAN_CONFIG: u8 = 0x4A;
 const EMC2101_PWM_FREQ: u8 = 0x4D;
@@ -12,7 +13,9 @@ const EMC2101_TACH_LSB: u8 = 0x46;
 const EMC2101_TACH_MSB: u8 = 0x47;
 const EMC2101_TACH_LIMIT_LSB: u8 = 0x48;
 const EMC2101_TACH_LIMIT_MSB: u8 = 0x49;
+const EMC2101_LUT_START: u8 = 0x50;
 
+const MAX_LUT_SPEED:u8 = 0x3F;
 const EMC2101_FAN_RPM_NUMERATOR: u32 = 5400000;
 
 pub struct Emc2101 {
@@ -129,6 +132,18 @@ impl Emc2101 {
         Ok(())
     }
 
+    pub fn set_lut(&mut self, index: u8, temp: u8, fan_pwm: u8) -> Result<()> {
+        let fan_data = ((fan_pwm as u32 * MAX_LUT_SPEED as u32) as f32 / 100.0) as u8;
+        let offset = EMC2101_LUT_START + index * 2;
+
+        self.enable_program(true)?;
+        self.i2c.smbus_write_byte(offset, temp)?;
+        self.i2c.smbus_write_byte(offset+1, fan_data)?;
+        println!("offset => {:02X} temp => {:02X} fan_data => {:02X}", offset, temp, fan_data);
+        self.enable_program(false)?;
+        Ok(())
+    }
+
     pub fn set_min_rpm(&mut self, min_rpm: u16) -> Result<()> {
         let lsb_value: u16 = (EMC2101_FAN_RPM_NUMERATOR / min_rpm as u32) as u16;
 
@@ -150,10 +165,15 @@ impl Emc2101 {
 
         println!("msb=>  {:02X} lsb {:02X}", data_msb, data_lsb);
         if (data_lsb == 0xFF && data_msb == 0xFF) {
-            return Err(Emc2101Error::UnkonwnStatus);
+            return Ok((0));
         }
         let raw_data: u16 = (data_lsb as u16) | ((data_msb & 0x3F) as u16) << 8;
         return Ok((5400000 as u32 / raw_data as u32) as u16);
+    }
+
+    pub fn get_temp(&mut self) -> Result<u8> {
+        let data = self.i2c.smbus_read_byte(EMC2101_TEMP_FORCE)?;
+        Ok(data)
     }
 
     pub fn set_default_config(&mut self, fan_duty: u8)-> Result<()> {

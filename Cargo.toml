@@ -9,6 +9,7 @@ edition = "2018"
 crc8 = "0.1.1"
 rppal = { version = "0.12.0", features = ["hal"] }
 cxx = "1.0"
+easy-error = "1.0.0"
 
 [build-dependencies]
 cxx-build = "1.0"

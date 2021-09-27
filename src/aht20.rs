@@ -107,7 +107,7 @@ impl Aht20 {
                 }
             }
         };
-        println!("humid_data is {} temp data is {}", humid_data, temp_data);
+        //println!("humid_data is {} temp data is {}", humid_data, temp_data);
         Ok((humid_data, temp_data))
     }
 

@@ -3,7 +3,7 @@ fn main() {
         .file("src/adc.cc")
         .file("src/ADS1X15_TLA2024.cc")
         .flag_if_supported("-std=c++14")
-        .compile("ruff-hnt-rs");
+        .compile("dev-monitor");
 
     println!("cargo:rerun-if-changed=src/main.rs");
     println!("cargo:rerun-if-changed=src/ADS1X15_TLA2024.cc");

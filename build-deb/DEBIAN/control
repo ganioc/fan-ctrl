@@ -1,0 +1,10 @@
+Package: dev-monitor
+Version: 1.0
+Section: utils
+Priority: optional
+Depends: 
+Suggests: 
+Architecture: arm64
+Maintainer: hummingbirdiot
+Provides: hummingbirdiot
+Description: device monitor

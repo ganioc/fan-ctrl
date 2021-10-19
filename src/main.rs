@@ -52,7 +52,7 @@ fn get_cpu_temp() -> Result<f32, Error> {
 #[cxx::bridge(namespace = "ruff::adc")]
 mod ffi {
     unsafe extern "C++" {
-        include!("ruff-hnt-rs/include/adc.h");
+        include!("dev-monitor/include/adc.h");
 
         type AdcClient;
 
@@ -96,8 +96,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             } else {
                 new_fan_duty = 0;
             }
-            if (new_fan_duty > 100) {
-                new_fan_duty = 100;
+            if (new_fan_duty >= 100) {
+                new_fan_duty = 90;
             }
             if (new_fan_duty != fan_duty) {
                 if let Ok(()) = emc2101.set_duty_cycle(new_fan_duty) {

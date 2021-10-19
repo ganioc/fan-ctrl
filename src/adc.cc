@@ -1,5 +1,5 @@
-#include "ruff-hnt-rs/include/adc.h"
-#include "ruff-hnt-rs/src/main.rs.h"
+#include "dev-monitor/include/adc.h"
+#include "dev-monitor/src/main.rs.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -11,7 +11,7 @@
 
 #include <iostream>
 
-#include "ruff-hnt-rs/include/ADS1X15_TLA2024.h"
+#include "dev-monitor/include/ADS1X15_TLA2024.h"
 namespace ruff {
 namespace adc {
 

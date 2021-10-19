@@ -1,0 +1,11 @@
+[Unit]
+Description=device monitor
+
+[Service]
+ExecStart=/usr/local/bin/dev-monitor
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=devmon
+
+[Install]
+WantedBy=multi-user.target

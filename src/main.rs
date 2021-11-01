@@ -5,6 +5,7 @@ use std::io::prelude::*;
 use std::result::Result;
 use easy_error::{bail, ensure, Error, ResultExt, Terminator};
 
+use clap::{App, SubCommand, Arg};
 
 use rppal::i2c::{I2c, Error as I2cError};
 
@@ -62,6 +63,26 @@ mod ffi {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let matches = App::new("dev-monitor")
+        .version("1.0")
+        .author("hummingbird iot")
+        .about("Does awesome things")
+        .arg(Arg::with_name("fan_speed")
+            .short("f")
+            .long("fan_speed")
+            .help("Sets a custom config file")
+            .takes_value(true))
+        .arg(Arg::with_name("daemon")
+            .short("d")
+            .help("run as daemon"))
+        .get_matches();
+
+    match matches.occurrences_of("d") {
+        0 => println!("Not server"),
+        1 | _ => println!("Run as server")
+    }
+    let fan_speed = matches.value_of("fan_speed").unwrap_or("50");
+    println!("fan_speed: {}", fan_speed);
     let client = ffi::new_adc_client();
     let mut aht20 = Aht20::new(0, ADDR_AHT20)?;
     let mut fan_duty:u8 = 0;

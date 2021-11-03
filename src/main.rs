@@ -45,7 +45,6 @@ fn get_cpu_temp() -> Result<f32, Error> {
     let mut file = File::open("/sys/class/thermal/thermal_zone0/temp").context("fail to open file")?;
     let mut contents = String::new();
     file.read_to_string(&mut contents).context("fail to read")?;
-    println!("contents is {}", contents);
     let temp = contents.trim_end().parse::<u32>().context("fail to parse")?;
     return Ok(temp as f32 / 1000.0);
 }
@@ -72,26 +71,58 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .long("fan_speed")
             .help("Sets a custom config file")
             .takes_value(true))
+        .arg(Arg::with_name("enable_adc")
+            .short("a")
+            .takes_value(false)
+            .help("enable_adc"))
         .arg(Arg::with_name("daemon")
             .short("d")
+            .takes_value(false)
             .help("run as daemon"))
         .get_matches();
 
-    match matches.occurrences_of("d") {
-        0 => println!("Not server"),
-        1 | _ => println!("Run as server")
-    }
+    let run_as_daemon = matches.is_present("daemon");
+    let enable_adc =  matches.is_present("enable_adc");
+
     let fan_speed = matches.value_of("fan_speed").unwrap_or("50");
     println!("fan_speed: {}", fan_speed);
-    let client = ffi::new_adc_client();
+    let adc_client = {
+        if (enable_adc) {
+            Some(ffi::new_adc_client())
+        } else {
+            None
+        }
+    };
+
+    if let Some(ref client) = adc_client {
+        for ch in 0..4 {
+            let data = client.read(ch);
+            println!("channel {} data is {}", ch, data);
+            println!("{:?}", data.to_humman(ch));
+        }
+    }
     let mut aht20 = Aht20::new(0, ADDR_AHT20)?;
-    let mut fan_duty:u8 = 0;
+    let mut fan_duty:u8 = fan_speed.parse().unwrap();
 
     let mut emc2101 = Emc2101::new(0, 0x4C)?;
     aht20.init()?;
     emc2101.init()?;
     emc2101.set_default_config(fan_duty)?;
 
+    if let Ok((humi, temp)) = aht20.get_sensor_data() {
+        println!("temp in aht20 is {} ", temp);
+        println!("humi in aht20 is {} ", humi);
+    } else {
+        println!("failed to read aht20 data");
+    }
+
+    if let Ok(speed) = emc2101.get_fan_speed() {
+        println!("speed => {}", speed);
+    }
+
+    if (!run_as_daemon) {
+        return Ok(())
+    }
     //emc2101.set_lut(0, 10, 30)?;
     //emc2101.enable_program(false)?;
     //emc2101.enable_force_temp(true)?;
@@ -99,11 +130,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     //emc2101.set_lut(2, 50, 90)?;
     loop {
         let mut new_fan_duty = fan_duty;
-        aht20.get_sensor_data()?;
-//        if let Ok(speed) = emc2101.get_fan_speed() {
-//            println!("speed => {}", speed);
-//        }
-//        println!("temp in fan is {:?}", emc2101.get_temp());
+        if let Ok(speed) = emc2101.get_fan_speed() {
+            println!("speed => {}", speed);
+        }
+        println!("temp in fan is {:?}", emc2101.get_temp());
         if let Ok((humi, temp)) = aht20.get_sensor_data() {
             println!("temp in aht20 is {} ", temp);
             println!("humi in aht20 is {} ", humi);
@@ -132,11 +162,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             println!("Fail to get cpu_temp");
         }
-        //for ch in 0..4 {
-        //    let data = client.read(ch);
-        //    println!("channel {} data is {}", ch, data);
-        //    println!("{:?}", data.to_humman(ch));
-        //}
-        thread::sleep(Duration::from_secs(5));
+
+        if let Some(ref client) = adc_client {
+            for ch in 0..4 {
+                let data = client.read(ch);
+                println!("channel {} data is {}", ch, data);
+                println!("{:?}", data.to_humman(ch));
+            }
+        }
+        thread::sleep(Duration::from_secs(60));
     }
 }

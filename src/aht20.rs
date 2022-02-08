@@ -58,9 +58,7 @@ impl Aht20Decoder for AhtData {
         let temp_data:u32 = (self[3] as u32 & 0xF)<< 16 | (self[4] as u32) << 8 | self[5] as u32;
 
         let mut crc8 = Crc8::create_msb(0x31);
-//        println!("data is {:02X?}", self);
         let mut crc = crc8.calc(&self[0..], self.len() as i32, 0xFF);
-        println!("crc is {}", crc);
         (humid_data as f32 / 2_i32.pow(20) as f32 * 100.0, temp_data as f32 * ((200.0)/2_i32.pow(20) as f32) - 50.0)
     }
 }

@@ -1,6 +1,7 @@
 use std::thread;
 use std::time::Duration;
 use std::fs::File;
+use serde::Serialize;
 use std::io::prelude::*;
 use std::result::Result;
 use std::default::Default;
@@ -124,7 +125,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         report_data.voltage_0 = adc_reader.read(2).to_data(2);
         report_data.voltage_1 = adc_reader.read(3).to_data(3);
 
-        println!("{:#?}", report_data);
+        println!("{}", report_data.toString());
         return Ok(());
     }
 

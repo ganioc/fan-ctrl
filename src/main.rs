@@ -76,6 +76,22 @@ fn get_cpu_temp() -> Result<f32, Error> {
     return Ok(temp as f32 / 1000.0);
 }
 
+fn show_board_sensor_data(aht32: &mut Aht20) {
+    let mut report_data = BoardSensorData { ..Default::default() };
+    let adc_reader = ffi::new_adc_client();
+
+    let (humid, temperatue) = aht20.get_sensor_data().unwrap();
+
+    report_data.temperatue = temperatue;
+    report_data.humid = humid;
+    report_data.current_0 = adc_reader.read(0).to_data(0);
+    report_data.current_1 = adc_reader.read(1).to_data(1);
+    report_data.voltage_0 = adc_reader.read(2).to_data(2);
+    report_data.voltage_1 = adc_reader.read(3).to_data(3);
+
+    println!("{}", serde_json::to_string(&report_data).unwrap());
+}
+
 #[cxx::bridge(namespace = "ruff::adc")]
 mod ffi {
     unsafe extern "C++" {
@@ -116,19 +132,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     aht20.init()?;
 
     if matches.is_present("get_sensor_data") {
-        let mut report_data = BoardSensorData { ..Default::default() };
-        let adc_reader = ffi::new_adc_client();
-
-        let (humid, temperatue) = aht20.get_sensor_data().unwrap();
-
-        report_data.temperatue = temperatue;
-        report_data.humid = humid;
-        report_data.current_0 = adc_reader.read(0).to_data(0);
-        report_data.current_1 = adc_reader.read(1).to_data(1);
-        report_data.voltage_0 = adc_reader.read(2).to_data(2);
-        report_data.voltage_1 = adc_reader.read(3).to_data(3);
-
-        println!("{}", serde_json::to_string(&report_data)?);
+        show_board_sensor_data(&mut aht20);
         return Ok(());
     }
 

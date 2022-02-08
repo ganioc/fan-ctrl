@@ -27,7 +27,7 @@ pub enum BoardAdcData {
 
 pub trait BoardAdc {
     fn to_humman(&self, ch: u8) -> Option<BoardAdcData>;
-    fn to_data(&self, ch: u8) -> f32,
+    fn to_data(&self, ch: u8) -> f3;
 }
 
 #[derive(Debug,Default)]

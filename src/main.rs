@@ -92,6 +92,54 @@ fn show_board_sensor_data(aht20: &mut Aht20) {
     println!("{}", serde_json::to_string(&report_data).unwrap());
 }
 
+fn run_fan_daemon(emc2101: &mut Emc2101) {
+    let mut fan_duty = 30;
+    loop {
+        let mut new_fan_duty = fan_duty;
+        if let Ok(speed) = emc2101.get_fan_speed() {
+            println!("speed => {}", speed);
+        }
+        println!("temp in fan is {:?}", emc2101.get_temp());
+        if let Ok((humi, temp)) = aht20.get_sensor_data() {
+            println!("temp in aht20 is {} ", temp);
+            println!("humi in aht20 is {} ", humi);
+        }
+        if let Ok(cpu_temp) = get_cpu_temp() {
+            println!("cpu temp is {}", get_cpu_temp().unwrap());
+            if cpu_temp > 80.0 {
+                new_fan_duty = 100;
+            } else if cpu_temp > 60.0 {
+                new_fan_duty = 30;
+            } else {
+                new_fan_duty = 0;
+            }
+            if new_fan_duty >= 100 {
+                new_fan_duty = 50;
+            }
+            if new_fan_duty != fan_duty {
+                if let Ok(()) = emc2101.set_duty_cycle(new_fan_duty) {
+                    println!("set new_fan_duty {}", new_fan_duty);
+                    fan_duty = new_fan_duty;
+                } else {
+                    println!("fail to set duty cycel {}", new_fan_duty);
+                }
+
+            }
+        } else {
+            println!("Fail to get cpu_temp");
+        }
+
+        if let Some(ref client) = adc_client {
+            for ch in 0..4 {
+                let data = client.read(ch);
+                println!("channel {} data is {}", ch, data);
+                println!("{:?}", data.to_humman(ch));
+            }
+        }
+        thread::sleep(Duration::from_secs(60));
+    }
+}
+
 #[cxx::bridge(namespace = "ruff::adc")]
 mod ffi {
     unsafe extern "C++" {
@@ -180,56 +228,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("speed => {}", speed);
     }
 
-    if !run_as_daemon {
-        return Ok(())
+    if run_as_daemon {
+        run_fan_daemon(&mut emc2101);
     }
-    //emc2101.set_lut(0, 10, 30)?;
-    //emc2101.enable_program(false)?;
-    //emc2101.enable_force_temp(true)?;
-    //emc2101.set_lut(1, 20, 50)?;
-    //emc2101.set_lut(2, 50, 90)?;
-    loop {
-        let mut new_fan_duty = fan_duty;
-        if let Ok(speed) = emc2101.get_fan_speed() {
-            println!("speed => {}", speed);
-        }
-        println!("temp in fan is {:?}", emc2101.get_temp());
-        if let Ok((humi, temp)) = aht20.get_sensor_data() {
-            println!("temp in aht20 is {} ", temp);
-            println!("humi in aht20 is {} ", humi);
-        }
-        if let Ok(cpu_temp) = get_cpu_temp() {
-            println!("cpu temp is {}", get_cpu_temp().unwrap());
-            if cpu_temp > 80.0 {
-                new_fan_duty = 100;
-            } else if cpu_temp > 60.0 {
-                new_fan_duty = 30;
-            } else {
-                new_fan_duty = 0;
-            }
-            if new_fan_duty >= 100 {
-                new_fan_duty = 50;
-            }
-            if new_fan_duty != fan_duty {
-                if let Ok(()) = emc2101.set_duty_cycle(new_fan_duty) {
-                    println!("set new_fan_duty {}", new_fan_duty);
-                    fan_duty = new_fan_duty;
-                } else {
-                    println!("fail to set duty cycel {}", new_fan_duty);
-                }
-
-            }
-        } else {
-            println!("Fail to get cpu_temp");
-        }
-
-        if let Some(ref client) = adc_client {
-            for ch in 0..4 {
-                let data = client.read(ch);
-                println!("channel {} data is {}", ch, data);
-                println!("{:?}", data.to_humman(ch));
-            }
-        }
-        thread::sleep(Duration::from_secs(60));
-    }
+    return Ok(());
 }

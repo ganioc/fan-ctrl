@@ -76,7 +76,7 @@ fn get_cpu_temp() -> Result<f32, Error> {
     return Ok(temp as f32 / 1000.0);
 }
 
-fn show_board_sensor_data(aht32: &mut Aht20) {
+fn show_board_sensor_data(aht20: &mut Aht20) {
     let mut report_data = BoardSensorData { ..Default::default() };
     let adc_reader = ffi::new_adc_client();
 

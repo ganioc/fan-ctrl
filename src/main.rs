@@ -63,7 +63,7 @@ mod ffi {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let matches = App::new("dev-monitor")
-        .version("1.0")
+        .version("1.1")
         .author("hummingbird iot")
         .about("Does awesome things")
         .arg(Arg::with_name("fan_speed")
@@ -84,7 +84,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let run_as_daemon = matches.is_present("daemon");
     let enable_adc =  matches.is_present("enable_adc");
 
-    let fan_speed = matches.value_of("fan_speed").unwrap_or("50");
+    let fan_speed = matches.value_of("fan_speed").unwrap_or("0");
     println!("fan_speed: {}", fan_speed);
     let adc_client = {
         if (enable_adc) {
@@ -109,6 +109,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     emc2101.init()?;
     emc2101.set_default_config(fan_duty)?;
 
+    if let Ok(()) = emc2101.set_duty_cycle(fan_duty) {
+        println!("set fan_duty {}", fan_duty);
+    } else {
+        println!("error set fan_duty");
+    }
+
     if let Ok((humi, temp)) = aht20.get_sensor_data() {
         println!("temp in aht20 is {} ", temp);
         println!("humi in aht20 is {} ", humi);
@@ -116,6 +122,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("failed to read aht20 data");
     }
 
+    thread::sleep(Duration::from_secs(1));
     if let Ok(speed) = emc2101.get_fan_speed() {
         println!("speed => {}", speed);
     }
@@ -140,15 +147,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         if let Ok(cpu_temp) = get_cpu_temp() {
             println!("cpu temp is {}", get_cpu_temp().unwrap());
-            if (cpu_temp > 60.0) {
+            if (cpu_temp > 80.0) {
                 new_fan_duty = 100;
-            } else if (cpu_temp > 40.0 ) {
-                new_fan_duty += 10;
+            } else if (cpu_temp > 60.0 ) {
+                new_fan_duty = 30;
             } else {
                 new_fan_duty = 0;
             }
             if (new_fan_duty >= 100) {
-                new_fan_duty = 90;
+                new_fan_duty = 50;
             }
             if (new_fan_duty != fan_duty) {
                 if let Ok(()) = emc2101.set_duty_cycle(new_fan_duty) {

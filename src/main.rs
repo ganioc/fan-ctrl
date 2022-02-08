@@ -92,7 +92,19 @@ fn show_board_sensor_data(aht20: &mut Aht20) {
     println!("{}", serde_json::to_string(&report_data).unwrap());
 }
 
-fn run_fan_daemon(emc2101: &mut Emc2101) {
+#[cxx::bridge(namespace = "ruff::adc")]
+mod ffi {
+    unsafe extern "C++" {
+        include!("dev-monitor/include/adc.h");
+
+        type AdcClient;
+
+        fn new_adc_client() -> UniquePtr<AdcClient>;
+        fn read(&self, channel: u8) -> u16;
+    }
+}
+
+fn run_fan_daemon(aht20: &mut Aht20, emc2101: &mut Emc2101, adc_client: Option<cxx::UniquePtr<ffi::AdcClient>>) {
     let mut fan_duty = 30;
     loop {
         let mut new_fan_duty = fan_duty;
@@ -137,18 +149,6 @@ fn run_fan_daemon(emc2101: &mut Emc2101) {
             }
         }
         thread::sleep(Duration::from_secs(60));
-    }
-}
-
-#[cxx::bridge(namespace = "ruff::adc")]
-mod ffi {
-    unsafe extern "C++" {
-        include!("dev-monitor/include/adc.h");
-
-        type AdcClient;
-
-        fn new_adc_client() -> UniquePtr<AdcClient>;
-        fn read(&self, channel: u8) -> u16;
     }
 }
 
@@ -229,7 +229,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     if run_as_daemon {
-        run_fan_daemon(&mut emc2101);
+        run_fan_daemon(&mut aht20, &mut emc2101, adc_client);
     }
     return Ok(());
 }

@@ -3,6 +3,7 @@ use std::time::Duration;
 use std::fs::File;
 use std::io::prelude::*;
 use std::result::Result;
+use std::default::Default;
 use easy_error::{bail, ensure, Error, ResultExt, Terminator};
 
 use clap::{App, SubCommand, Arg};
@@ -26,6 +27,17 @@ pub enum BoardAdcData {
 
 pub trait BoardAdc {
     fn to_humman(&self, ch: u8) -> Option<BoardAdcData>;
+    fn to_data(&self, ch: u8) -> f32,
+}
+
+#[derive(Debug,Default)]
+struct BoardSensorData {
+    temperatue: f32,
+    humid: f32,
+    current_0: f32,
+    current_1: f32,
+    voltage_0: f32,
+    voltage_1: f32,
 }
 
 impl BoardAdc for u16 {
@@ -37,6 +49,17 @@ impl BoardAdc for u16 {
             2 => Some(BoardAdcData::mV(v * 33.24 / 3.24)),
             3 => Some(BoardAdcData::mV(v * 2.0)),
             _ => None
+        }
+    }
+
+    fn to_data(&self, ch: u8) -> f32 {
+        let v = *self as f32 * 6.144 / 2048.0;
+        match ch {
+            0 => v /2.5 * 1000.0,
+            1 => v * 1000.0,
+            2 => v * 33.24 / 3.24,
+            3 => v * 2.0,
+            _ => panic!("Invalid {ch}"),
         }
     }
 }
@@ -75,11 +98,34 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .short("a")
             .takes_value(false)
             .help("enable_adc"))
+        .arg(Arg::with_name("get_sensor_data")
+            .takes_value(false)
+            .help("get sensor data"))
         .arg(Arg::with_name("daemon")
             .short("d")
             .takes_value(false)
             .help("run as daemon"))
         .get_matches();
+
+    let mut aht20 = Aht20::new(0, ADDR_AHT20)?;
+    aht20.init()?;
+
+    if (matches.is_present("get_sensor_data")) {
+        let mut report_data = BoardAdcData{ ..Default::default() };
+        let adc_reader = ffi::new_adc_client();
+
+        let (humid, temperatue) = aht20.get_sensor_data().unwrap();
+
+        reportData.temperatue = temperatue;
+        reportData.humid = humid;
+        reportData.current_0 = adc_reader.read(0).to_data(0);
+        reportData.current_1 = adc_reader.read(1).to_data(1);
+        reportData.voltage_0 = adc_reader.read(2).to_data(2);
+        reportData.voltage_1 = adc_reader.read(3).to_data(3);
+
+        println!("{#?}", report_data);
+        return Ok(());
+    }
 
     let run_as_daemon = matches.is_present("daemon");
     let enable_adc =  matches.is_present("enable_adc");
@@ -101,11 +147,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{:?}", data.to_humman(ch));
         }
     }
-    let mut aht20 = Aht20::new(0, ADDR_AHT20)?;
     let mut fan_duty:u8 = fan_speed.parse().unwrap();
 
     let mut emc2101 = Emc2101::new(0, 0x4C)?;
-    aht20.init()?;
     emc2101.init()?;
     emc2101.set_default_config(fan_duty)?;
 

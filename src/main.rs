@@ -111,7 +111,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     aht20.init()?;
 
     if (matches.is_present("get_sensor_data")) {
-        let mut report_data = BoardAdcData{ ..Default::default() };
+        let mut report_data = BoardSensorData { ..Default::default() };
         let adc_reader = ffi::new_adc_client();
 
         let (humid, temperatue) = aht20.get_sensor_data().unwrap();

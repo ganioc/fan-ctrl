@@ -99,6 +99,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .takes_value(false)
             .help("enable_adc"))
         .arg(Arg::with_name("get_sensor_data")
+            .short("g")
             .takes_value(false)
             .help("get sensor data"))
         .arg(Arg::with_name("daemon")
@@ -123,7 +124,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         report_data.voltage_0 = adc_reader.read(2).to_data(2);
         report_data.voltage_1 = adc_reader.read(3).to_data(3);
 
-        println!("{#?}", report_data);
+        println!("{:#?}", report_data);
         return Ok(());
     }
 

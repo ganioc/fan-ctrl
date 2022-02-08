@@ -116,12 +116,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let (humid, temperatue) = aht20.get_sensor_data().unwrap();
 
-        reportData.temperatue = temperatue;
-        reportData.humid = humid;
-        reportData.current_0 = adc_reader.read(0).to_data(0);
-        reportData.current_1 = adc_reader.read(1).to_data(1);
-        reportData.voltage_0 = adc_reader.read(2).to_data(2);
-        reportData.voltage_1 = adc_reader.read(3).to_data(3);
+        report_data.temperatue = temperatue;
+        report_data.humid = humid;
+        report_data.current_0 = adc_reader.read(0).to_data(0);
+        report_data.current_1 = adc_reader.read(1).to_data(1);
+        report_data.voltage_0 = adc_reader.read(2).to_data(2);
+        report_data.voltage_1 = adc_reader.read(3).to_data(3);
 
         println!("{#?}", report_data);
         return Ok(());

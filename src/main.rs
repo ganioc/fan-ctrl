@@ -1,7 +1,10 @@
+extern crate serde_json;
+
+#[macro_use]
+use serde::Serialize;
 use std::thread;
 use std::time::Duration;
 use std::fs::File;
-use serde::Serialize;
 use std::io::prelude::*;
 use std::result::Result;
 use std::default::Default;
@@ -31,7 +34,7 @@ pub trait BoardAdc {
     fn to_data(&self, ch: u8) -> f32;
 }
 
-#[derive(Debug,Default)]
+#[derive(Serialize,Default)]
 struct BoardSensorData {
     temperatue: f32,
     humid: f32,
@@ -125,7 +128,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         report_data.voltage_0 = adc_reader.read(2).to_data(2);
         report_data.voltage_1 = adc_reader.read(3).to_data(3);
 
-        println!("{}", report_data.toString());
+        println!("{}", serde_json::to_string(&report_data)?);
         return Ok(());
     }
 

@@ -1,5 +1,5 @@
-use crate::{thread, Duration, Error, I2c, I2cError};
-use crc8::Crc8;
+use crate::{I2c, I2cError};
+
 use std::{error, fmt};
 use std::result;
 
@@ -37,7 +37,7 @@ pub trait RegData {
 
 impl RegData for u8 {
     fn set_bit(&self, value: bool, bit: u8) -> u8 {
-        if (value) {
+        if value {
             *self | (1u8 << bit)
         } else {
             *self & !(1u8 << bit)
@@ -76,7 +76,7 @@ impl Emc2101 {
 
     pub fn enable_tach(&mut self, enable: bool) -> Result<()> {
         let mut data = self.i2c.smbus_read_byte(EMC2101_REG_CONFIG)?;
-        if (enable) {
+        if enable {
             data = data | 1u8 << 2;
         } else {
             data = data & !(1u8 << 2);
@@ -90,7 +90,7 @@ impl Emc2101 {
 
     pub fn invert_fan_speed(&mut self, invert: bool) -> Result<()> {
         let mut data = self.i2c.smbus_read_byte(EMC2101_FAN_CONFIG)?;
-        if (invert) {
+        if invert {
             data = data | 1u8 << 4;
         } else {
             data = data & !(1u8 << 4);
@@ -125,7 +125,7 @@ impl Emc2101 {
     pub fn set_duty_cycle(&mut self, duty: u8) -> Result<()> {
         let mut to_reg: u8 = ((duty as u16 * 64) / 100 as u16) as u8;
 
-        if (to_reg > 63) {
+        if to_reg > 63 {
             to_reg = 63;
         }
         self.i2c.smbus_write_byte(EMC2101_REG_FAN_SETTING, to_reg)?;
@@ -164,8 +164,8 @@ impl Emc2101 {
         let data_msb = self.i2c.smbus_read_byte(EMC2101_TACH_MSB)?;
 
         println!("msb=>  {:02X} lsb {:02X}", data_msb, data_lsb);
-        if (data_lsb == 0xFF && data_msb == 0xFF) {
-            return Ok((0));
+        if data_lsb == 0xFF && data_msb == 0xFF {
+            return Ok(0);
         }
         let raw_data: u16 = (data_lsb as u16) | ((data_msb & 0x3F) as u16) << 8;
         return Ok((5400000 as u32 / raw_data as u32) as u16);
@@ -190,7 +190,7 @@ impl Emc2101 {
 
     pub fn init(&mut self) -> Result<()> {
         let id = self.i2c.smbus_read_byte(EMC2101_WHOAMI)?;
-        if (id != 0x16 && id != 0x28) {
+        if id != 0x16 && id != 0x28 {
             return Err(Emc2101Error::InvalidDeviceId);
         }
         Ok(())

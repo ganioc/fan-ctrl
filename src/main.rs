@@ -8,17 +8,17 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::result::Result;
 use std::default::Default;
-use easy_error::{bail, ensure, Error, ResultExt, Terminator};
+use easy_error::{Error, ResultExt};
 
-use clap::{App, SubCommand, Arg};
+use clap::{App, Arg};
 
 use rppal::i2c::{I2c, Error as I2cError};
 
 mod aht20;
 mod emc2101;
 
-use aht20::{Aht20, Aht20Error};
-use emc2101::{Emc2101, Emc2101Error};
+use aht20::{Aht20};
+use emc2101::{Emc2101};
 
 const ADDR_AHT20: u16 = 0x38;
 
@@ -63,7 +63,7 @@ impl BoardAdc for u16 {
             1 => v * 1000.0,
             2 => v * 33.24 / 3.24,
             3 => v * 2.0,
-            _ => panic!("Invalid {ch}"),
+            _ => panic!("Invalid {}", ch),
         }
     }
 }
@@ -115,7 +115,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut aht20 = Aht20::new(0, ADDR_AHT20)?;
     aht20.init()?;
 
-    if (matches.is_present("get_sensor_data")) {
+    if matches.is_present("get_sensor_data") {
         let mut report_data = BoardSensorData { ..Default::default() };
         let adc_reader = ffi::new_adc_client();
 
@@ -138,7 +138,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let fan_speed = matches.value_of("fan_speed").unwrap_or("0");
     println!("fan_speed: {}", fan_speed);
     let adc_client = {
-        if (enable_adc) {
+        if enable_adc {
             Some(ffi::new_adc_client())
         } else {
             None
@@ -176,7 +176,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("speed => {}", speed);
     }
 
-    if (!run_as_daemon) {
+    if !run_as_daemon {
         return Ok(())
     }
     //emc2101.set_lut(0, 10, 30)?;
@@ -196,17 +196,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         if let Ok(cpu_temp) = get_cpu_temp() {
             println!("cpu temp is {}", get_cpu_temp().unwrap());
-            if (cpu_temp > 80.0) {
+            if cpu_temp > 80.0 {
                 new_fan_duty = 100;
-            } else if (cpu_temp > 60.0 ) {
+            } else if cpu_temp > 60.0 {
                 new_fan_duty = 30;
             } else {
                 new_fan_duty = 0;
             }
-            if (new_fan_duty >= 100) {
+            if new_fan_duty >= 100 {
                 new_fan_duty = 50;
             }
-            if (new_fan_duty != fan_duty) {
+            if new_fan_duty != fan_duty {
                 if let Ok(()) = emc2101.set_duty_cycle(new_fan_duty) {
                     println!("set new_fan_duty {}", new_fan_duty);
                     fan_duty = new_fan_duty;

@@ -1,6 +1,6 @@
 use std::{error, fmt};
 use crc8::Crc8;
-use crate::{I2c, I2cError, Error, Duration, thread};
+use crate::{I2c, I2cError, Duration, thread};
 
 pub struct Aht20 {
     bus: u8,
@@ -58,7 +58,7 @@ impl Aht20Decoder for AhtData {
         let temp_data:u32 = (self[3] as u32 & 0xF)<< 16 | (self[4] as u32) << 8 | self[5] as u32;
 
         let mut crc8 = Crc8::create_msb(0x31);
-        let mut crc = crc8.calc(&self[0..], self.len() as i32, 0xFF);
+        let _crc = crc8.calc(&self[0..], self.len() as i32, 0xFF);
         (humid_data as f32 / 2_i32.pow(20) as f32 * 100.0, temp_data as f32 * ((200.0)/2_i32.pow(20) as f32) - 50.0)
     }
 }
@@ -97,7 +97,7 @@ impl Aht20 {
             loop {
                 thread::sleep(Duration::from_millis(100));
                 let status = self.get_status()?;
-                if (status & 0x80u8 == 0) {
+                if status & 0x80u8 == 0 {
                     self.i2c.read(&mut reg)?;
                     break reg.to_human();
                 } else {
@@ -111,7 +111,7 @@ impl Aht20 {
 
     pub fn init(&mut self) -> Result<(), Aht20Error> {
         let status = self.get_status()?;
-        if (status & 0x16 == 0) {
+        if status & 0x16 == 0 {
             let reg:[u8;2] = [0x08, 0x00];
             self.i2c.write(&reg)?;
             thread::sleep(Duration::from_millis(100));

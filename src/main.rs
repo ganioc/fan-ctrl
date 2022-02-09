@@ -11,7 +11,7 @@ use std::default::Default;
 use sysfs_gpio::{Direction, Pin};
 use easy_error::{Error, ResultExt};
 
-use clap::Parse;
+use clap::Parser;
 
 use rppal::i2c::{I2c, Error as I2cError};
 
@@ -199,7 +199,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut aht20 = Aht20::new(0, ADDR_AHT20)?;
     aht20.init()?;
-    println!("{#:?}", Cli);
+    println!("{:#?}", cli);
     if (cli.get_board_sensor_data) {
         show_board_sensor_data(&mut aht20);
         return Ok(());

@@ -8,9 +8,10 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::result::Result;
 use std::default::Default;
+use sysfs_gpio::{Direction, Pin};
 use easy_error::{Error, ResultExt};
 
-use clap::{App, Arg};
+use clap::Parse;
 
 use rppal::i2c::{I2c, Error as I2cError};
 
@@ -21,6 +22,21 @@ use aht20::{Aht20};
 use emc2101::{Emc2101};
 
 const ADDR_AHT20: u16 = 0x38;
+
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+struct Cli {
+    /// Name of the person to greet
+    #[clap(short, long)]
+    get_board_sensor_data: bool,
+
+    #[clap(short, long)]
+    power_on_adc: bool,
+
+    /// Number of times to greet
+    #[clap(long, default_value_t = 1)]
+    power_pin: u8,
+}
 
 #[allow(non_camel_case_types)]
 #[derive(Debug)]
@@ -153,83 +169,93 @@ fn run_fan_daemon(aht20: &mut Aht20, emc2101: &mut Emc2101, adc_client: Option<c
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let matches = App::new("dev-monitor")
-        .version("1.1")
-        .author("hummingbird iot")
-        .about("Does awesome things")
-        .arg(Arg::with_name("fan_speed")
-            .short("f")
-            .long("fan_speed")
-            .help("Sets a custom config file")
-            .takes_value(true))
-        .arg(Arg::with_name("enable_adc")
-            .short("a")
-            .takes_value(false)
-            .help("enable_adc"))
-        .arg(Arg::with_name("get_sensor_data")
-            .short("g")
-            .takes_value(false)
-            .help("get sensor data"))
-        .arg(Arg::with_name("daemon")
-            .short("d")
-            .takes_value(false)
-            .help("run as daemon"))
-        .get_matches();
+    let cli = Cli::parse();
+//    let matches = App::new("dev-monitor")
+//        .version("1.1")
+//        .author("hummingbird iot")
+//        .about("Does awesome things")
+//        .arg(Arg::with_name("fan_speed")
+//            .short("f")
+//            .long("fan_speed")
+//            .help("Sets a custom config file")
+//            .takes_value(true))
+//        .arg(Arg::with_name("enable_adc")
+//            .short("a")
+//            .takes_value(false)
+//            .help("enable_adc"))
+//        .arg(Arg::with_name("power_adc")
+//            .show("p")
+//            .takes_value(true)
+//            .help("Power on/off adc")
+//        .arg(Arg::with_name("get_sensor_data")
+//            .short("g")
+//            .takes_value(false)
+//            .help("get sensor data"))
+//        .arg(Arg::with_name("daemon")
+//            .short("d")
+//            .takes_value(false)
+//            .help("run as daemon"))
+//        .get_matches();
 
     let mut aht20 = Aht20::new(0, ADDR_AHT20)?;
     aht20.init()?;
-
-    if matches.is_present("get_sensor_data") {
+    println!("{#:?}", Cli);
+    if (cli.get_board_sensor_data) {
         show_board_sensor_data(&mut aht20);
         return Ok(());
     }
 
-    let run_as_daemon = matches.is_present("daemon");
-    let enable_adc =  matches.is_present("enable_adc");
+    //if matches.is_present("get_sensor_data") {
+    //    show_board_sensor_data(&mut aht20);
+    //    return Ok(());
+    //}
 
-    let fan_speed = matches.value_of("fan_speed").unwrap_or("0");
-    println!("fan_speed: {}", fan_speed);
-    let adc_client = {
-        if enable_adc {
-            Some(ffi::new_adc_client())
-        } else {
-            None
-        }
-    };
+    //let run_as_daemon = matches.is_present("daemon");
+    //let enable_adc =  matches.is_present("enable_adc");
 
-    if let Some(ref client) = adc_client {
-        for ch in 0..4 {
-            let data = client.read(ch);
-            println!("channel {} data is {}", ch, data);
-            println!("{:?}", data.to_humman(ch));
-        }
-    }
-    let mut fan_duty:u8 = fan_speed.parse().unwrap();
+    //let fan_speed = matches.value_of("fan_speed").unwrap_or("0");
+    //println!("fan_speed: {}", fan_speed);
+    //let adc_client = {
+    //    if enable_adc {
+    //        Some(ffi::new_adc_client())
+    //    } else {
+    //        None
+    //    }
+    //};
 
-    let mut emc2101 = Emc2101::new(0, 0x4C)?;
-    emc2101.init()?;
-    emc2101.set_default_config(fan_duty)?;
+    //if let Some(ref client) = adc_client {
+    //    for ch in 0..4 {
+    //        let data = client.read(ch);
+    //        println!("channel {} data is {}", ch, data);
+    //        println!("{:?}", data.to_humman(ch));
+    //    }
+    //}
+    //let mut fan_duty:u8 = fan_speed.parse().unwrap();
 
-    if let Ok(()) = emc2101.set_duty_cycle(fan_duty) {
-        println!("set fan_duty {}", fan_duty);
-    } else {
-        println!("error set fan_duty");
-    }
+    //let mut emc2101 = Emc2101::new(0, 0x4C)?;
+    //emc2101.init()?;
+    //emc2101.set_default_config(fan_duty)?;
 
-    if let Ok((humi, temp)) = aht20.get_sensor_data() {
-        println!("temp in aht20 is {} ", temp);
-        println!("humi in aht20 is {} ", humi);
-    } else {
-        println!("failed to read aht20 data");
-    }
+    //if let Ok(()) = emc2101.set_duty_cycle(fan_duty) {
+    //    println!("set fan_duty {}", fan_duty);
+    //} else {
+    //    println!("error set fan_duty");
+    //}
 
-    thread::sleep(Duration::from_secs(1));
-    if let Ok(speed) = emc2101.get_fan_speed() {
-        println!("speed => {}", speed);
-    }
+    //if let Ok((humi, temp)) = aht20.get_sensor_data() {
+    //    println!("temp in aht20 is {} ", temp);
+    //    println!("humi in aht20 is {} ", humi);
+    //} else {
+    //    println!("failed to read aht20 data");
+    //}
 
-    if run_as_daemon {
-        run_fan_daemon(&mut aht20, &mut emc2101, adc_client);
-    }
+    //thread::sleep(Duration::from_secs(1));
+    //if let Ok(speed) = emc2101.get_fan_speed() {
+    //    println!("speed => {}", speed);
+    //}
+
+    //if run_as_daemon {
+    //    run_fan_daemon(&mut aht20, &mut emc2101, adc_client);
+    //}
     return Ok(());
 }

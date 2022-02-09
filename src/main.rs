@@ -2,24 +2,24 @@ extern crate serde_json;
 
 #[macro_use]
 use serde::Serialize;
-use std::thread;
-use std::time::Duration;
+use easy_error::{Error, ResultExt};
+use std::default::Default;
 use std::fs::File;
 use std::io::prelude::*;
 use std::result::Result;
-use std::default::Default;
+use std::thread;
+use std::time::Duration;
 use sysfs_gpio::{Direction, Pin};
-use easy_error::{Error, ResultExt};
 
 use clap::Parser;
 
-use rppal::i2c::{I2c, Error as I2cError};
+use rppal::i2c::{Error as I2cError, I2c};
 
 mod aht20;
 mod emc2101;
 
-use aht20::{Aht20};
-use emc2101::{Emc2101};
+use aht20::Aht20;
+use emc2101::Emc2101;
 
 const ADDR_AHT20: u16 = 0x38;
 
@@ -56,7 +56,7 @@ pub trait BoardAdc {
     fn to_data(&self, ch: u8) -> f32;
 }
 
-#[derive(Serialize,Default)]
+#[derive(Serialize, Default)]
 struct BoardSensorData {
     temperatue: f32,
     humid: f32,
@@ -70,18 +70,18 @@ impl BoardAdc for u16 {
     fn to_humman(&self, ch: u8) -> Option<BoardAdcData> {
         let v = *self as f32 * 6.144 / 2048.0;
         match ch {
-            0 => Some(BoardAdcData::mA(v /2.5 * 1000.0)),
+            0 => Some(BoardAdcData::mA(v / 2.5 * 1000.0)),
             1 => Some(BoardAdcData::mA(v * 1000.0)),
             2 => Some(BoardAdcData::mV(v * 33.24 / 3.24)),
             3 => Some(BoardAdcData::mV(v * 2.0)),
-            _ => None
+            _ => None,
         }
     }
 
     fn to_data(&self, ch: u8) -> f32 {
         let v = *self as f32 * 6.144 / 2048.0;
         match ch {
-            0 => v /2.5 * 1000.0,
+            0 => v / 2.5 * 1000.0,
             1 => v * 1000.0,
             2 => v * 33.24 / 3.24,
             3 => v * 2.0,
@@ -91,15 +91,21 @@ impl BoardAdc for u16 {
 }
 
 fn get_cpu_temp() -> Result<f32, Error> {
-    let mut file = File::open("/sys/class/thermal/thermal_zone0/temp").context("fail to open file")?;
+    let mut file =
+        File::open("/sys/class/thermal/thermal_zone0/temp").context("fail to open file")?;
     let mut contents = String::new();
     file.read_to_string(&mut contents).context("fail to read")?;
-    let temp = contents.trim_end().parse::<u32>().context("fail to parse")?;
+    let temp = contents
+        .trim_end()
+        .parse::<u32>()
+        .context("fail to parse")?;
     return Ok(temp as f32 / 1000.0);
 }
 
 fn show_board_sensor_data(aht20: &mut Aht20) {
-    let mut report_data = BoardSensorData { ..Default::default() };
+    let mut report_data = BoardSensorData {
+        ..Default::default()
+    };
     let adc_reader = ffi::new_adc_client();
 
     let (humid, temperatue) = aht20.get_sensor_data().unwrap();
@@ -117,8 +123,9 @@ fn show_board_sensor_data(aht20: &mut Aht20) {
 fn power_adc(pin: u8, is_on: bool) {
     let adc_power = Pin::new(pin.into()); // number depends on chip, etc.
     println!("power in {pin} is_on {is_on}");
-    adc_power.with_exported(|| {
-        adc_power.set_direction(Direction::Out).unwrap();
+    adc_power
+        .with_exported(|| {
+            adc_power.set_direction(Direction::Out).unwrap();
             thread::sleep(Duration::from_millis(200));
             if is_on {
                 adc_power.set_value(1).unwrap();
@@ -126,7 +133,8 @@ fn power_adc(pin: u8, is_on: bool) {
                 adc_power.set_value(0).unwrap();
             }
             Ok(())
-    }).unwrap();
+        })
+        .unwrap();
 }
 
 #[cxx::bridge(namespace = "ruff::adc")]
@@ -141,7 +149,11 @@ mod ffi {
     }
 }
 
-fn run_fan_daemon(aht20: &mut Aht20, emc2101: &mut Emc2101, adc_client: Option<cxx::UniquePtr<ffi::AdcClient>>) {
+fn run_fan_daemon(
+    aht20: &mut Aht20,
+    emc2101: &mut Emc2101,
+    adc_client: Option<cxx::UniquePtr<ffi::AdcClient>>,
+) {
     let mut fan_duty = 30;
     loop {
         let mut new_fan_duty = fan_duty;
@@ -172,7 +184,6 @@ fn run_fan_daemon(aht20: &mut Aht20, emc2101: &mut Emc2101, adc_client: Option<c
                 } else {
                     println!("fail to set duty cycel {}", new_fan_duty);
                 }
-
             }
         } else {
             println!("Fail to get cpu_temp");
@@ -212,7 +223,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             None
         }
     };
-
 
     if cli.deamon {
         let mut emc2101 = Emc2101::new(0, 0x4C)?;

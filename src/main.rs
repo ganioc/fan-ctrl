@@ -115,16 +115,17 @@ fn show_board_sensor_data(aht20: &mut Aht20) {
 }
 
 fn power_adc(pin: u8, is_on: bool) {
-    let adc_power = Pin::new(pin); // number depends on chip, etc.
+    let adc_power = Pin::new(pin.into()); // number depends on chip, etc.
     println!("power in {pin} is_on {is_on}");
     adc_power.with_exported(|| {
         adc_power.set_direction(Direction::Out).unwrap();
-            sleep(Duration::from_millis(200));
+            thread::sleep(Duration::from_millis(200));
             if is_on {
                 adc_power.set_value(1).unwrap();
             } else {
                 adc_power.set_value(0).unwrap();
             }
+            Ok(())
     }).unwrap();
 }
 
@@ -191,11 +192,10 @@ fn run_fan_daemon(aht20: &mut Aht20, emc2101: &mut Emc2101, adc_client: Option<c
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
-    if (cli.is_on)
     let mut aht20 = Aht20::new(0, ADDR_AHT20)?;
     aht20.init()?;
 
-    if let Some(ref power_on_adc) = cli.power_on_adc {
+    if let Some(power_on_adc) = cli.power_on_adc {
         power_adc(cli.power_pin, power_on_adc);
         return Ok(());
     }
@@ -214,11 +214,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
 
-    let mut emc2101 = Emc2101::new(0, 0x4C)?;
-    emc2101.init()?;
-    emc2101.set_default_config(fan_duty)?;
-
     if cli.deamon {
+        let mut emc2101 = Emc2101::new(0, 0x4C)?;
+        emc2101.init()?;
         run_fan_daemon(&mut aht20, &mut emc2101, adc_client);
     }
     return Ok(());

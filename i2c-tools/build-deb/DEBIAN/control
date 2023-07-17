@@ -1,0 +1,10 @@
+Package: fan-ctrl
+Version: 2.0
+Section: utils
+Priority: optional
+Depends: 
+Suggests: 
+Architecture: arm64
+Maintainer: yango  <yangjun@nanchao.org>
+Provides: ruff
+Description: fan ctrl

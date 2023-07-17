@@ -1,0 +1,12 @@
+#!/bin/sh
+
+set -ex
+
+svc=fan-ctrl
+
+# Start service 
+systemctl enable ${svc}.service
+systemctl daemon-reload
+systemctl start ${svc}.service
+
+exit 0

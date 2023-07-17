@@ -1,0 +1,11 @@
+[Unit]
+Description=fan ctrl
+
+[Service]
+ExecStart=/usr/local/bin/fan-ctrl.sh
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=fanctrl
+
+[Install]
+WantedBy=multi-user.target

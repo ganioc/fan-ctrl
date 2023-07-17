@@ -1,0 +1,10 @@
+#!/bin/sh
+
+set -ex
+
+svc=fan-ctrl
+
+systemctl stop ${svc}.service
+systemctl disable ${svc}.service
+
+exit 0

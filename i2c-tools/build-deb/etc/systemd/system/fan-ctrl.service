@@ -2,7 +2,9 @@
 Description=fan ctrl
 
 [Service]
+Type=simple
 ExecStart=/usr/local/bin/fan-ctrl.sh
+ExecStopPost=/usr/local/bin/fan-ctrl-stop.sh
 StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier=fanctrl
